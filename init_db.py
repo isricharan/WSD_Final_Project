@@ -3,16 +3,13 @@ import json
 
 
 def initialize_database():
-    # Connect to SQLite database
     conn = sqlite3.connect('db.sqlite')
     cursor = conn.cursor()
 
-    # Drop existing tables if they exist (to reset the database)
     cursor.execute('DROP TABLE IF EXISTS orders')
     cursor.execute('DROP TABLE IF EXISTS items')
     cursor.execute('DROP TABLE IF EXISTS customers')
 
-    # Create tables
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,31 +40,26 @@ def initialize_database():
 
     conn.commit()
 
-    # Load data from JSON file
     with open('example_orders.json', 'r') as file:
         orders_data = json.load(file)
 
     for order in orders_data:
-        # Insert customer
         cursor.execute('''
             INSERT OR IGNORE INTO customers (name, phone)
             VALUES (?, ?)
         ''', (order['name'], order['phone']))
 
-        # Retrieve customer ID
         cursor.execute('''
             SELECT id FROM customers WHERE name = ? AND phone = ?
         ''', (order['name'], order['phone']))
         customer_id = cursor.fetchone()[0]
 
-        # Insert items into the items table
         for item in order['items']:
             cursor.execute('''
                 INSERT OR IGNORE INTO items (name, price)
                 VALUES (?, ?)
             ''', (item['name'], item['price']))
 
-            # Insert order with item
             cursor.execute('''
                 INSERT INTO orders (customer_id, item_name, notes, timestamp)
                 VALUES (?, ?, ?, ?)
