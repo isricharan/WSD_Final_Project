@@ -29,7 +29,6 @@ def get_db_connection():
     return conn
 
 
-
 @app.post("/customers")
 def create_customer(customer: Customer, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
@@ -77,7 +76,40 @@ def get_all_customers(conn: sqlite3.Connection = Depends(get_db_connection)):
         conn.close()  
 
 
-# Items Endpoints
+@app.put("/customers/{id}")
+def update_customer(id: int, customer: Customer, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE customers SET name = ?, phone = ? WHERE id = ?", (customer.name, customer.phone, id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Customer updated successfully"}
+
+
+@app.delete("/customers/{id}")
+def delete_customer(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM customers WHERE id = ?", (id,))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Customer deleted successfully"}
+
+
 @app.post("/items")
 def create_item(item: Item, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
@@ -107,10 +139,42 @@ def get_item(name: str, conn: sqlite3.Connection = Depends(get_db_connection)):
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
-        conn.close()  
+        conn.close()
+
+@app.put("/items/{id}")
+def update_item(id: int, item: Item, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE items SET name = ?, price = ? WHERE id = ?", (item.name, item.price, id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Item not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Item updated successfully"}
 
 
-# Orders Endpoints
+@app.delete("/items/{id}")
+def delete_item(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM items WHERE id = ?", (id,))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Item not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Item deleted successfully"}
+
+
 @app.post("/orders")
 def create_order(order: Order, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
@@ -141,4 +205,39 @@ def get_order(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
-        conn.close()  
+        conn.close()
+
+
+@app.put("/orders/{id}")
+def update_order(id: int, order: Order, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE orders SET customer_id = ?, item_name = ?, notes = ?, timestamp = ? WHERE id = ?",
+                       (order.customer_id, order.item_name, order.notes, order.timestamp, id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Order not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Order updated successfully"}
+
+
+@app.delete("/orders/{id}")
+def delete_order(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM orders WHERE id = ?", (id,))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Order not found")
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        conn.close()
+
+    return {"message": "Order deleted successfully"}
