@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
+from datetime import datetime
 
 import sqlite3
 
@@ -18,7 +19,7 @@ class Item(BaseModel):
 
 class Order(BaseModel):
     customer_id: int
-    item_name: str
+    item_id: int
     notes: str
     timestamp: int
 
@@ -128,11 +129,11 @@ def create_item(item: Item, conn: sqlite3.Connection = Depends(get_db_connection
     return {"message": "Item created successfully"}
 
 
-@app.get("/items/{name}")
-def get_item(name: str, conn: sqlite3.Connection = Depends(get_db_connection)):
+@app.get("/items/{id}")
+def get_item(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
     try:
-        item = cursor.execute("SELECT * FROM items WHERE name = ?", (name,)).fetchone()
+        item = cursor.execute("SELECT * FROM items WHERE id = ?", (id,)).fetchone()
         if not item:
             raise HTTPException(status_code=404, detail="Item not found")
         return dict(item)
@@ -178,9 +179,11 @@ def delete_item(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
 @app.post("/orders")
 def create_order(order: Order, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
+    if order.timestamp is None or order.timestamp == 0:
+        order.timestamp = int(datetime.utcnow().timestamp())
     try:
-        cursor.execute("INSERT INTO orders (customer_id, item_name, notes, timestamp) VALUES (?, ?, ?, ?)",
-                       (order.customer_id, order.item_name, order.notes, order.timestamp))
+        cursor.execute("INSERT INTO orders (customer_id, item_id, notes, timestamp) VALUES (?, ?, ?, ?)",
+                       (order.customer_id, order.item_id, order.notes, order.timestamp))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.rollback()  
@@ -211,9 +214,11 @@ def get_order(id: int, conn: sqlite3.Connection = Depends(get_db_connection)):
 @app.put("/orders/{id}")
 def update_order(id: int, order: Order, conn: sqlite3.Connection = Depends(get_db_connection)):
     cursor = conn.cursor()
+    if order.timestamp is None or order.timestamp == 0:
+        order.timestamp = int(datetime.utcnow().timestamp())
     try:
-        cursor.execute("UPDATE orders SET customer_id = ?, item_name = ?, notes = ?, timestamp = ? WHERE id = ?",
-                       (order.customer_id, order.item_name, order.notes, order.timestamp, id))
+        cursor.execute("UPDATE orders SET customer_id = ?, item_id = ?, notes = ?, timestamp = ? WHERE id = ?",
+                       (order.customer_id, order.item_id, order.notes, order.timestamp, id))
         conn.commit()
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Order not found")
